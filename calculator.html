@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Calculator</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+      main {
+        width: 200px;
+        background-color: rgb(192, 187, 187);
+        padding: 2px;
+      }
+      .grid-container {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        margin-top: 2px;
+      }
+      #display {
+        width: 196px;
+        background-color: white;
+        height: 30px;
+        overflow: hidden;
+      }
+      #error {
+        color: red;
+      }
+    </style>
+  </head>
+  <body onload="updateStoreDiv()">
+    <h1>The Calculator</h1>
+    <main>
+      <input id="display" type="text" />
+      <div class="grid-container">
+        <button onclick="handleMC()">MC</button>
+        <button onclick="handleNumAndOperator(0)">0</button>
+        <button onclick="handleNumAndOperator(1)">1</button>
+        <button onclick="handleNumAndOperator(2)">2</button>
+        <button onclick="handleNumAndOperator('+')">+</button>
+        <button onclick="handleMSAndPlus()">MS</button>
+        <button onclick="handleNumAndOperator(3)">3</button>
+        <button onclick="handleNumAndOperator(4)">4</button>
+        <button onclick="handleNumAndOperator(5)">5</button>
+        <button onclick="handleNumAndOperator('-')">-</button>
+        <button onclick="handleMR()">MR</button>
+        <button onclick="handleNumAndOperator(6)">6</button>
+        <button onclick="handleNumAndOperator(7)">7</button>
+        <button onclick="handleNumAndOperator(8)">8</button>
+        <button onclick="handleNumAndOperator('x')">x</button>
+        <button onclick="handleMSAndPlus(true)">M+</button>
+        <button onclick="handleNumAndOperator(9)">9</button>
+        <button onclick="handleSignChange()"><u>+</u></button>
+        <button onclick="handleResult('=')">=</button>
+        <button onclick="handleNumAndOperator('/')">/</button>
+        <button onclick="handleInvert()">1/x</button>
+        <button onclick="handleDot()">.</button>
+        <button onclick="handleSquare()">x <sup>2</sup></button>
+        <button onclick="handleC()">C</button>
+        <button onclick="handleSquareRoot('√')">√</button>
+      </div>
+    </main>
+    <div id="error"></div>
+    <div id="store"></div>
+  </body>
+  <script>
+    var store = null;
+    const displayDiv = document.getElementById("display");
+    const errorDiv = document.getElementById("error");
+    const storeDiv = document.getElementById("store");
+
+    function updateStoreDiv() {
+      setInterval(() => {
+        store
+          ? (storeDiv.innerText = "Value stored = " + store)
+          : (storeDiv.innerText = "No value stored");
+      }, 10);
+    }
+
+    function handleNumAndOperator(value) {
+      displayDiv.value += value;
+    }
+
+    function handleMSAndPlus(isPlus) {
+      var skip = false;
+      if (displayDiv.value.match(/^[\-+0-9.][0-9.]*$/)) {
+        if (displayDiv.value.length === 1 && displayDiv.value.match(/[\-+]/))
+          skip = true;
+        else {
+          if (isPlus) {
+            store
+              ? (store = (
+                  parseFloat(store) + parseFloat(displayDiv.value)
+                ).toString())
+              : (store = displayDiv.value);
+          } else store = displayDiv.value;
+          console.log(store);
+        }
+      } else skip = true;
+      if (skip) {
+        errorDiv.innerText =
+          "Only number can be saved.Expression can not be saved.";
+        setTimeout(() => (errorDiv.innerText = ""), 3000);
+      }
+    }
+
+    function handleMR() {
+      if (store) displayDiv.value += store;
+      else {
+        errorDiv.innerText = "No saved value";
+        setTimeout(() => (errorDiv.innerText = ""), 3000);
+      }
+    }
+
+    function handleMC() {
+      store = null;
+    }
+
+    function handleC() {
+      displayDiv.value = "";
+    }
+
+    function getLastNumWithIndex() {
+      if (!displayDiv.value.match(/[x\/+-]/)) return [0, displayDiv.value];
+      var text = "";
+      var index = -1;
+      for (let i = displayDiv.value.length - 1; i >= 0; i--) {
+        if (displayDiv.value[i].match(/[x\/+-]/)) {
+          if (displayDiv.value[i].match(/[x\/]/)) i++;
+          index = i;
+          for (let j = i; j < displayDiv.value.length; j++) {
+            text += displayDiv.value[j];
+          }
+          break;
+        }
+      }
+      console.log({ text });
+      return [index, text];
+    }
+    function replaceInExpression(indexTill, replacement) {
+      var expression = "";
+      for (let i = 0; i < indexTill; i++) {
+        expression += displayDiv.value[i];
+      }
+      expression += replacement;
+      displayDiv.value = expression;
+    }
+    function handleSignChange() {
+      try {
+        console.log(getLastNumWithIndex());
+        var [index, lastNum] = getLastNumWithIndex();
+        lastNum = (-1 * parseFloat(lastNum)).toString();
+        if (lastNum === NaN.toString()) throw "Invalid operation";
+        if (lastNum >= 0) lastNum = "+" + lastNum;
+        replaceInExpression(index, lastNum);
+      } catch (e) {
+        console.log(e);
+        errorDiv.innerText = "Can not make negative";
+        setTimeout(() => (errorDiv.innerText = ""), 3000);
+      }
+    }
+
+    function handleResult() {
+      try {
+        const expression = displayDiv.value.replaceAll(/x/g, "*");
+        displayDiv.value = eval(expression);
+      } catch (err) {
+        errorDiv.innerText = "Incorrect expression";
+        setTimeout(() => (errorDiv.innerText = ""), 3000);
+      }
+    }
+
+    function handleInvert() {
+      try {
+        var [index, lastNum] = getLastNumWithIndex();
+        lastNum = (1 / parseFloat(lastNum)).toString();
+        if (
+          lastNum === NaN.toString() ||
+          lastNum === Infinity.toString() ||
+          lastNum === (-Infinity).toString()
+        )
+          throw "Invalid operation";
+        replaceInExpression(index, lastNum);
+      } catch (e) {
+        errorDiv.innerText = "Can not invert";
+        setTimeout(() => (errorDiv.innerText = ""), 3000);
+      }
+    }
+    function handleDot() {
+      var [index, lastNum] = getLastNumWithIndex();
+      if (lastNum.includes(".")) {
+        errorDiv.innerText = "Can not add decimal point";
+        setTimeout(() => (errorDiv.innerText = ""), 3000);
+        return;
+      }
+      lastNum += ".0";
+      replaceInExpression(index, lastNum);
+    }
+    function handleSquare() {
+      try {
+        var [index, lastNum] = getLastNumWithIndex();
+        lastNum = Math.pow(parseFloat(lastNum), 2).toString();
+        if (lastNum === NaN.toString() || lastNum === Infinity.toString())
+          throw "Invalid operation";
+        replaceInExpression(index, lastNum);
+      } catch (e) {
+        errorDiv.innerText = "Can not square";
+        setTimeout(() => (errorDiv.innerText = ""), 3000);
+      }
+    }
+    function handleSquareRoot() {
+      try {
+        var [index, lastNum] = getLastNumWithIndex();
+        lastNum = Math.sqrt(parseFloat(lastNum)).toString();
+        if (lastNum === NaN.toString() || lastNum === Infinity.toString())
+          throw "Invalid operation";
+        replaceInExpression(index, lastNum);
+      } catch (e) {
+        errorDiv.innerText = "Can not square root";
+        setTimeout(() => (errorDiv.innerText = ""), 3000);
+      }
+    }
+  </script>
+</html>
